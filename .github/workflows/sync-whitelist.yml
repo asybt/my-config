@@ -2,7 +2,7 @@ name: Sync whitelist.pac
 
 on:
   schedule:
-    - cron: '0 0 */3 * *' # 每 3天同步一次
+    - cron: '0 */6 * * *' # 每 6 小时同步一次
   workflow_dispatch: {}  # 可手动触发以便测试
 
 permissions:
@@ -26,8 +26,7 @@ jobs:
           mkdir -p "$(dirname "$DEST")"
           tmpfile=$(mktemp)
           curl -fsSL "$URL" -o "$tmpfile"
-          # 同时替换 SOCKS5 与 socks5 为 SOCKS4/socks4
-          sed -e 's/SOCKS5 127.0.0.1:1080/g' -e 's/SOCKS5 192.168.1.200:7890/g' "$tmpfile" > "$tmpfile.converted"
+          sed -e 's/SOCKS5 127\.0\.0\.1:1080/SOCKS5 192.168.1.200:7890/g' "$tmpfile" > "$tmpfile.converted"
 
           if [ -f "$DEST" ]; then
             if cmp -s "$DEST" "$tmpfile.converted"; then
@@ -46,7 +45,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add pac/whitelist.pac
-            git commit -m "chore: sync whitelist.pac (replace SOCKS5->SOCKS4)"
+            git commit -m "chore: sync whitelist.pac (update SOCKS5 proxy address)"
             git push
           else
             echo "No changes to commit"
