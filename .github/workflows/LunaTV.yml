@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# 同步远端文件到 LunaTV 目录，存在则替换
+# 用法:
+#   DEST_DIR=/path/to/LunaTV ./scripts/sync_lunatv.sh
+#
+# 默认 DEST_DIR=$HOME/LunaTV
+
+set -u
+
+# 可通过环境变量覆盖目标目录
+DEST_DIR="${DEST_DIR:-$HOME/LunaTV}"
+
+# 要检查的远端文件 URL 列表
+urls=(
+  "https://raw.githubusercontent.com/hafrey1/LunaTV-config/refs/heads/main/jingjian.txt"
+  "https://raw.githubusercontent.com/hafrey1/LunaTV-config/refs/heads/main/LunaTV-config.txt"
+)
+
+# 创建目录（若不存在）
+mkdir -p -- "$DEST_DIR"
+
+for url in "${urls[@]}"; do
+  filename=$(basename "$url")
+  tmpfile=$(mktemp) || { echo "无法创建临时文件"; continue; }
+
+  # -f : 失败时返回非0（用于检测 404），-s 静默，-S 显示错误信息，-L 跟随重定向
+  if curl -fsSL --max-time 30 -o "$tmpfile" "$url"; then
+    # 原子替换：先备份（可选），再移动覆盖
+    # 你可以启用下面一行来保留备份： cp -a "$DEST_DIR/$filename" "$DEST_DIR/$filename.bak.$(date +%s)" 2>/dev/null || true
+    mv -f "$tmpfile" "$DEST_DIR/$filename"
+    chmod 644 "$DEST_DIR/$filename" 2>/dev/null || true
+    echo "$(date '+%F %T') - 已更新: $DEST_DIR/$filename"
+  else
+    # 如果远端不存在（如 404），curl -f 会失败，跳过并删除临时文件
+    rm -f "$tmpfile"
+    echo "$(date '+%F %T') - 未找到远端文件或下载失败: $url"
+  fi
+done
