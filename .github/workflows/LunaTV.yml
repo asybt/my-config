@@ -1,10 +1,4 @@
-#!/usr/bin/env bash
-# 同步远端文件到 LunaTV 目录，存在则替换
-# 用法:
-#   DEST_DIR=/path/to/LunaTV ./scripts/sync_lunatv.sh
-#
-# 默认 DEST_DIR=$HOME/LunaTV
-
+name: Sync LunaTV-config
 set -u
 
 # 可通过环境变量覆盖目标目录
