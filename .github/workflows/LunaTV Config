@@ -1,0 +1,78 @@
+name: Sync LunaTV Config
+
+on:
+  schedule:
+    # 每周二凌晨1:00（UTC 时间）
+    # 如果你想调整为其他时区（如北京时间周二早上9:00），可以改成 '0 17 * * 1'（UTC 17:00 = 北京 01:00 次日）
+    - cron: '0 1 * * 2'
+  workflow_dispatch:
+    inputs:
+      password:
+        description: '输入密码以手动运行（定时运行无需密码）'
+        required: true
+        type: string
+
+jobs:
+  sync-config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 验证手动触发密码（定时运行跳过）
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          # 把这里的密码哈希改成你自己的密码的 SHA256 哈希值
+          # 生成方式：在本地运行：echo -n "你的密码" | sha256sum
+          EXPECTED_HASH="c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2"  # 示例：密码为空字符串的哈希（请替换！）
+          
+          INPUT_HASH=$(echo -n "${{ inputs.password }}" | sha256sum | awk '{print $1}')
+          
+          if [[ "$INPUT_HASH" != "$EXPECTED_HASH" ]]; then
+            echo "密码错误！"
+            exit 1
+          fi
+          echo "密码验证通过，继续执行..."
+
+      - name: Checkout 仓库（用于后续 commit 更新文件）
+        uses: actions/checkout@v4
+
+      - name: 创建目录并同步配置文件
+        run: |
+          mkdir -p LunaTV
+          
+          urls=(
+            "https://raw.githubusercontent.com/hafrey1/LunaTV-config/refs/heads/main/jingjian.txt"
+            "https://raw.githubusercontent.com/hafrey1/LunaTV-config/refs/heads/main/LunaTV-config.txt"
+          )
+          
+          success_count=0
+          fail_count=0
+          
+          for url in "${urls[@]}"; do
+            filename=$(basename "$url")
+            filepath="LunaTV/$filename"
+            
+            echo "正在下载: $url"
+            
+            if curl -fsSL --max-time 30 -o "$filepath" "$url"; then
+              echo "成功更新: $filepath"
+              ((success_count++))
+            else
+              echo "下载失败: $url"
+              ((fail_count++))
+            fi
+          done
+          
+          echo "同步完成：成功 $success_count 个，失败 $fail_count 个"
+
+      - name: Commit 并 Push 更新（如果有变化）
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add LunaTV/*.txt
+          if git diff --cached --quiet; then
+            echo "没有文件变化，无需 commit"
+          else
+            git commit -m "Auto update LunaTV config files $(date +'%Y-%m-%d %H:%M:%S')"
+            git push
+            echo "已提交并推送更新"
+          fi
