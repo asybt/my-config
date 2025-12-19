@@ -2,8 +2,12 @@ name: Sync LunaTV Config
 
 on:
   schedule:
-    - cron: '0 1 * * 2'  # 每周二 UTC 01:00（北京时间早上9:00）
-  workflow_dispatch:    # 支持手动触发（无需密码）
+    - cron: '0 1 * * 2'
+  workflow_dispatch:
+
+# 关键：添加以下权限声明
+permissions:
+  contents: write
 
 jobs:
   sync:
@@ -13,21 +17,22 @@ jobs:
 
       - name: 下载并更新配置文件
         run: |
-          mkdir -p LunaTV
+          mkdir -p MyTV
           curl -fsSL --max-time 30 \
-            -o LunaTV/jingjian.txt \
+            -o MyTV/jingjian.txt \
             https://raw.githubusercontent.com/hafrey1/LunaTV-config/refs/heads/main/jingjian.txt
           
           curl -fsSL --max-time 30 \
-            -o LunaTV/LunaTV-config.txt \
+            -o MyTV/LunaTV-config.txt \
             https://raw.githubusercontent.com/hafrey1/LunaTV-config/refs/heads/main/LunaTV-config.txt
 
-      - name: Commit 并 Push（如果有变化）
+      - name: Commit 并 Push
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          git add LunaTV/*.txt
+          git add MyTV/*.txt
+          # 检查是否有变化，防止报错
           git diff --quiet --cached && echo "无变化，跳过 commit" && exit 0
           
           git commit -m "Auto update LunaTV config $(date -u '+%Y-%m-%d %H:%M UTC')"
