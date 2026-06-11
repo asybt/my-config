@@ -2,7 +2,7 @@ name: Sync LunaTV Config
 
 on:
   schedule:
-    - cron: '0 1 * * 2'
+    - cron: '0 1 1 * *'
   workflow_dispatch:
 
 # 关键：添加以下权限声明
