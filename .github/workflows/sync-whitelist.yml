@@ -2,7 +2,7 @@ name: Sync whitelist
 
 on:
   schedule:
-    - cron: '0 0 1 * *'       # 每3天 UTC 00:00 执行一次
+    - cron: '0 0 1 * *'       # 分时日月周
   workflow_dispatch:            # 支持手动触发
 
 permissions:
